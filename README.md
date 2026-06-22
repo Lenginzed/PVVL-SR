@@ -1,4 +1,3 @@
-```markdown
 # PVVL-SR
 
 **Physics-Verified Vision-Language Semantic Reward Shaping for Maneuvering UAV Air Combat Reinforcement Learning**
@@ -62,7 +61,6 @@ Different labels use different fusion policies:
 ## Repository Structure
 
 ```text
-.
 ├── algorithms/                         # PPO/MAPPO baseline algorithms from LAG
 ├── envs/                               # LAG/JSBSim environments and scenarios
 ├── lag_extensions/
@@ -88,7 +86,6 @@ Different labels use different fusion policies:
 ├── config.py                           # LAG configuration
 ├── README.md
 └── LICENSE
-```
 
 ## What Is Not Included
 
@@ -304,57 +301,6 @@ The curriculum is optional and only enabled through configuration. It does not m
 - The framework is designed for maneuvering-oriented 1v1 air-combat experiments.
 - NoWeapon results should not be interpreted as full missile-combat validation.
 - DodgeMissile support is preliminary and intended for compatibility checking.
-
-## Recommended `.gitignore`
-
-Large artifacts should not be committed:
-
-```gitignore
-models/
-scripts/results/
-manuscript/
-TAES/
-wandb/
-runs/
-results/
-
-*.pt
-*.pth
-*.ckpt
-*.safetensors
-*.bin
-*.onnx
-
-*.jsonl
-*.npy
-*.npz
-*.csv
-*.acmi
-
-*.pdf
-*.aux
-*.bbl
-*.blg
-*.log
-*.out
-*.toc
-*.synctex.gz
-```
-
-## Citation
-
-A manuscript based on this framework is in preparation.
-
-```bibtex
-@misc{pvvl_sr,
-  title = {PVVL-SR: A Physics-Verified Vision-Language Semantic Reward Shaping Framework for Maneuvering UAV Air Combat Reinforcement Learning},
-  author = {Li, Zhendong and Li, Hui},
-  year = {2026},
-  note = {Research code},
-}
-```
-
-Please also cite the original LAG environment if you use this repository.
 
 ## Acknowledgement
 
