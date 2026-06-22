@@ -1,0 +1,145 @@
+vlm:
+  enabled: true
+  model_name_or_path: "models/Qwen2.5-VL-7B-Instruct"
+  model_family: "qwen2.5-vl"
+  load_mode: "explicit_single_gpu"
+  device: "cuda:0"
+  device_map: "auto"
+  dtype: "float16"
+  local_files_only: true
+  attn_implementation: null
+  use_flash_attention_2: false
+  min_pixels: 50176
+  max_pixels: 100352
+  pixel_presets:
+    tiny:
+      min_pixels: 50176
+      max_pixels: 100352
+    fast:
+      min_pixels: 100352
+      max_pixels: 200704
+    balanced:
+      min_pixels: 200704
+      max_pixels: 401408
+    accurate:
+      min_pixels: 200704
+      max_pixels: 802816
+  temperature: 0.0
+  top_p: 1.0
+  max_new_tokens: 128
+  prompt_version: "compact_v1"
+  online_call: false
+  fallback_to_physical: true
+
+renderer:
+  image_size: 512
+  ego_centered: true
+  show_legend: true
+  show_distance: true
+  show_energy: true
+  show_speed: true
+  show_altitude: true
+  show_delta_energy: true
+  show_numeric_panel: true
+  show_attack_sector: true
+  show_threat_sector: true
+  view_range_m: 15000
+
+cache:
+  enabled: true
+  path: "scripts/results/vlm_cache/qwen2_5_vl_stage7_formal100_cache.jsonl"
+
+reward_shaping:
+  enabled: true
+  semantic_source: "cached_vlm"
+  fallback_semantic_source: "physical"
+  cached_vlm_path: "scripts/results/vlm_cache/qwen2_5_vl_stage7_formal100_cache.jsonl"
+  use_label_fusion: true
+  use_potential_based: true
+  gamma: 0.99
+  alpha: 0.5
+  beta: 1.0
+  verification_mode: soft_gate
+  consistency_threshold: 0.3
+  tau: 0.2
+  low_confidence_value: 0.1
+  physical_reward_from: weighted_scores
+  log_steps: true
+  log_episodes: true
+
+label_fusion:
+  override_threshold: 0.6
+  low_physical_threshold: 0.1
+  high_physical_threshold: 0.8
+  low_vlm_threshold: 0.2
+  high_vlm_threshold: 0.8
+  labels:
+    ego_tail_advantage:
+      policy: "hybrid"
+      lambda_vlm: 0.7
+      physical_override: true
+    enemy_tail_threat:
+      policy: "hybrid"
+      lambda_vlm: 0.7
+      physical_override: true
+    effective_attack_window:
+      policy: "hybrid"
+      lambda_vlm: 0.6
+      physical_override: true
+    enemy_missile_threat_zone:
+      policy: "hybrid"
+      lambda_vlm: 0.4
+      physical_override: true
+    energy_advantage:
+      policy: "physical"
+      lambda_vlm: 0.0
+      physical_override: true
+    energy_disadvantage:
+      policy: "physical"
+      lambda_vlm: 0.0
+      physical_override: true
+    defensive_escape:
+      policy: "hybrid"
+      lambda_vlm: 0.5
+      physical_override: true
+    neutral_stalemate:
+      policy: "hybrid"
+      lambda_vlm: 0.5
+      physical_override: true
+
+curriculum:
+  enabled: true
+  mode: by_training_steps
+  stages:
+    - name: advantage_or_basic
+      start_step: 0
+      beta: 1.0
+      alpha: 0.5
+      semantic_source: cached_vlm
+      semantic_call_interval: 5
+      opponent_level: weak
+      situation_level: easy
+    - name: balanced
+      start_step: 100000
+      beta: 0.6
+      alpha: 0.8
+      semantic_source: cached_vlm
+      semantic_call_interval: 10
+      opponent_level: medium
+      situation_level: neutral
+    - name: adversarial
+      start_step: 300000
+      beta: 0.3
+      alpha: 0.5
+      semantic_source: cached_vlm
+      semantic_call_interval: 20
+      opponent_level: historical_or_strong
+      situation_level: hard
+    - name: final
+      start_step: 600000
+      beta: 0.0
+      alpha: 0.2
+      semantic_source: cached_vlm
+      semantic_call_interval: 50
+      opponent_level: strong
+      situation_level: random

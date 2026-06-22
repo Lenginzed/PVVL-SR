@@ -1,0 +1,19 @@
+reward_shaping:
+  enabled: false
+
+situation_curriculum:
+  enabled: true
+  mode: mixed
+  distance_m: [2800.0, 3600.0]
+  lateral_m: [-300.0, 300.0]
+  altitude_ft: 20000.0
+  ego_speed_fps: 880.0
+  enemy_speed_fps: 760.0
+  stages:
+    - name: eval_mixed_uniform
+      start_step: 0
+      probabilities:
+        offensive_advantage: 0.25
+        neutral_merge: 0.25
+        defensive_disadvantage: 0.25
+        random: 0.25

@@ -1,0 +1,45 @@
+reward_shaping:
+  enabled: true
+  semantic_source: "surrogate"
+  fallback_semantic_source: "physical"
+  use_label_fusion: true
+  use_potential_based: true
+  gamma: 0.99
+  alpha: 0.5
+  beta: 1.0
+  verification_mode: soft_gate
+  consistency_threshold: 0.3
+  tau: 0.2
+  low_confidence_value: 0.1
+  physical_reward_from: weighted_scores
+  log_steps: true
+  log_episodes: true
+
+surrogate:
+  enabled: true
+  model_dir: "scripts/results/surrogate_models/stage8_surrogate_v1"
+  target_type: "fused_scores"
+  output_mode: "semantic_scores_then_fusion"
+  normalize_features: true
+  device: "cpu"
+
+label_weights:
+  ego_tail_advantage: 0.5
+  enemy_tail_threat: -0.8
+  effective_attack_window: 1.0
+  enemy_missile_threat_zone: -1.0
+  energy_advantage: 0.3
+  energy_disadvantage: -0.3
+  defensive_escape: 0.5
+  neutral_stalemate: -0.2
+
+curriculum:
+  enabled: true
+  mode: by_training_steps
+  stages:
+    - name: advantage_or_basic
+      start_step: 0
+      beta: 1.0
+      alpha: 0.5
+      semantic_source: surrogate
+      semantic_call_interval: 1

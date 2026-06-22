@@ -1,0 +1,12 @@
+reward_shaping:
+  enabled: false
+
+situation_curriculum:
+  enabled: true
+  mode: fixed
+  stage: offensive_advantage
+  distance_m: [2800.0, 3600.0]
+  lateral_m: [-300.0, 300.0]
+  altitude_ft: 20000.0
+  ego_speed_fps: 880.0
+  enemy_speed_fps: 760.0

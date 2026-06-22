@@ -1,0 +1,15 @@
+# Example config for 1v1 physical fallback semantic reward shaping.
+reward_shaping:
+  enabled: true
+  semantic_source: physical
+  use_potential_based: true
+  gamma: 0.99
+  alpha: 0.5
+  beta: 1.0
+  verification_mode: soft_gate
+  consistency_threshold: 0.3
+  tau: 0.2
+  low_confidence_value: 0.1
+  physical_reward_from: weighted_scores
+  log_steps: true
+  log_episodes: true

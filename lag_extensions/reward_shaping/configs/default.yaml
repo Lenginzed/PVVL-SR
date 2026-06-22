@@ -1,0 +1,90 @@
+# Default reward shaping config. It is disabled to preserve original PPO behavior.
+reward_shaping:
+  enabled: false
+  semantic_source: physical
+  use_potential_based: true
+  gamma: 0.99
+  alpha: 0.5
+  beta: 1.0
+  verification_mode: soft_gate
+  consistency_threshold: 0.3
+  tau: 0.2
+  low_confidence_value: 0.1
+  physical_reward_from: weighted_scores
+  log_steps: true
+  log_episodes: true
+
+thresholds:
+  theta_tail_deg: 45
+  theta_aim_deg: 60
+  theta_launch_deg: 30
+  theta_target_deg: 45
+  theta_enemy_launch_deg: 30
+  # LAG JSBSim positions are local NEU meters; tune these for final experiments.
+  d_tail: 5000
+  d_threat: 6000
+  d_attack_min: 500
+  d_attack_max: 8000
+  d_missile_min: 500
+  d_missile_max: 14000
+  closing_rate_threshold: 0
+  enemy_lock_min_score: 0.8
+  # Specific energy E = 0.5 * V^2 + g * h in m^2/s^2.
+  E_adv_threshold: 20000
+  E_dis_threshold: 20000
+  E_scale: 50000
+  d_dot_escape_threshold: 5
+  d_dot_scale: 120
+  angle_escape_scale_deg: 30
+  neutral_min: 3000
+  neutral_max: 12000
+  neutral_time_threshold: 20
+  neutral_base_score: 0.2
+  neutral_growth_steps: 100
+
+label_weights:
+  ego_tail_advantage: 0.5
+  enemy_tail_threat: -0.8
+  effective_attack_window: 1.0
+  enemy_missile_threat_zone: -1.0
+  energy_advantage: 0.3
+  energy_disadvantage: -0.3
+  defensive_escape: 0.5
+  neutral_stalemate: -0.2
+
+curriculum:
+  enabled: true
+  mode: by_training_steps
+  stages:
+    - name: advantage_or_basic
+      start_step: 0
+      beta: 1.0
+      alpha: 0.5
+      semantic_source: physical
+      semantic_call_interval: 5
+      opponent_level: weak
+      situation_level: easy
+    - name: balanced
+      start_step: 100000
+      beta: 0.6
+      alpha: 0.8
+      semantic_source: physical
+      semantic_call_interval: 10
+      opponent_level: medium
+      situation_level: neutral
+    - name: adversarial
+      start_step: 300000
+      beta: 0.3
+      alpha: 0.5
+      semantic_source: physical
+      semantic_call_interval: 20
+      opponent_level: historical_or_strong
+      situation_level: hard
+    - name: final
+      start_step: 600000
+      beta: 0.0
+      alpha: 0.2
+      semantic_source: physical
+      semantic_call_interval: 50
+      opponent_level: strong
+      situation_level: random

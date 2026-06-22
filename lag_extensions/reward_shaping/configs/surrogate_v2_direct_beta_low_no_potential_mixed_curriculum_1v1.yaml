@@ -1,0 +1,83 @@
+reward_shaping:
+  enabled: true
+  semantic_source: "surrogate"
+  fallback_semantic_source: "physical"
+  use_label_fusion: true
+  use_potential_based: false
+  gamma: 0.99
+  alpha: 0.5
+  beta: 0.5
+  verification_mode: soft_gate
+  consistency_threshold: 0.3
+  tau: 0.2
+  low_confidence_value: 0.1
+  physical_reward_from: weighted_scores
+  log_steps: true
+  log_episodes: true
+
+surrogate:
+  enabled: true
+  model_dir: "scripts/results/surrogate_models/stage9_surrogate_v2"
+  target_type: "fused_scores"
+  output_mode: "fused_scores_direct"
+  normalize_features: true
+  device: "cpu"
+
+label_weights:
+  ego_tail_advantage: 0.5
+  enemy_tail_threat: -0.8
+  effective_attack_window: 1.0
+  enemy_missile_threat_zone: -1.0
+  energy_advantage: 0.3
+  energy_disadvantage: -0.3
+  defensive_escape: 0.5
+  neutral_stalemate: -0.2
+
+curriculum:
+  enabled: true
+  mode: by_training_steps
+  stages:
+    - name: advantage_or_basic
+      start_step: 0
+      beta: 0.5
+      alpha: 0.5
+      semantic_source: surrogate
+      semantic_call_interval: 1
+
+situation_curriculum:
+  enabled: true
+  mode: mixed
+  distance_m: [2800.0, 3600.0]
+  lateral_m: [-300.0, 300.0]
+  altitude_ft: 20000.0
+  ego_speed_fps: 880.0
+  enemy_speed_fps: 760.0
+  stages:
+    - name: stage1_offensive_heavy
+      start_step: 0
+      probabilities:
+        offensive_advantage: 0.60
+        neutral_merge: 0.20
+        defensive_disadvantage: 0.10
+        random: 0.10
+    - name: stage2_balanced
+      start_step: 50000
+      probabilities:
+        offensive_advantage: 0.40
+        neutral_merge: 0.30
+        defensive_disadvantage: 0.15
+        random: 0.15
+    - name: stage3_harder
+      start_step: 100000
+      probabilities:
+        offensive_advantage: 0.25
+        neutral_merge: 0.35
+        defensive_disadvantage: 0.20
+        random: 0.20
+    - name: stage4_randomized
+      start_step: 150000
+      probabilities:
+        offensive_advantage: 0.15
+        neutral_merge: 0.35
+        defensive_disadvantage: 0.25
+        random: 0.25
