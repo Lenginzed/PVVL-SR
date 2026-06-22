@@ -167,6 +167,7 @@ results/
 
 # paper/build artifacts
 *.pdf
+!assets/pvvl_sr_method_architecture.pdf
 *.aux
 *.bbl
 *.blg

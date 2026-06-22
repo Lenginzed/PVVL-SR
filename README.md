@@ -2,28 +2,32 @@
 
 **Physics-Verified Vision-Language Semantic Reward Shaping for Maneuvering UAV Air Combat Reinforcement Learning**
 
-PVVL-SR is a research framework built on top of LAG-master for studying physics-verified semantic reward shaping in 1v1 UAV air-combat maneuvering tasks. The framework uses an offline vision-language model (VLM) teacher, physics-based tactical verification, label-wise semantic fusion, a lightweight surrogate semantic reward network, and potential-based reward shaping for PPO training.
+PVVL-SR is a research framework built on top of LAG-master for studying physics-verified semantic reward shaping in 1v1 UAV air-combat maneuvering tasks. The framework combines offline vision-language model (VLM) semantic labeling, physics-based tactical verification, label-wise semantic fusion, a lightweight surrogate semantic reward network, potential-based reward shaping, and mixed situation curriculum learning.
 
-This repository focuses on the algorithmic framework and code implementation. Large experiment logs, trained checkpoints, Qwen model weights, generated datasets, and manuscript artifacts are not included.
+This repository focuses on the algorithmic framework and code implementation. Large experiment logs, trained checkpoints, Qwen model weights, generated datasets, and manuscript artifacts are intentionally not included.
 
-## Overview
+## Method Overview
 
-PVVL-SR addresses a practical issue in reinforcement learning for air-combat maneuvering: manually designed physical rewards are interpretable but often limited in tactical semantics, while raw VLM feedback can be slow, physically inconsistent, and unsuitable for online control.
+PVVL-SR addresses a practical reward-design problem in reinforcement learning for maneuvering air combat: manually designed physical rewards are interpretable but limited in tactical semantics, while raw VLM feedback can be slow, physically inconsistent, and unsuitable for online control.
 
-The framework follows this pipeline:
+The core pipeline is:
 
 1. Extract ego/enemy states from the LAG 1v1 air-combat environment.
-2. Compute air-combat geometry, energy, threat, and maneuvering metrics.
+2. Compute air-combat geometry, range-rate, energy, threat, and maneuvering metrics.
 3. Render standardized 2D air-combat situation diagrams for offline VLM labeling.
 4. Use Qwen2.5-VL-7B-Instruct as an offline semantic teacher.
 5. Verify VLM scores with physics-based tactical labels.
 6. Apply label-wise semantic fusion with physical override.
-7. Train a lightweight MLP surrogate to predict fused semantic scores from state features.
+7. Train a lightweight multilayer perceptron (MLP) surrogate to predict fused semantic scores from state features.
 8. Use the surrogate online during PPO training.
 9. Convert semantic scores into a potential-based reward shaping term.
 10. Combine environment reward, physical reward, and semantic shaping reward.
 
 Qwen2.5-VL is **not** used as an online controller and is **not** called inside the PPO step loop.
+
+![PVVL-SR method architecture](assets/pvvl_sr_method_architecture.png)
+
+[Download the architecture diagram as PDF](assets/pvvl_sr_method_architecture.pdf)
 
 ## Key Features
 
@@ -32,15 +36,15 @@ Qwen2.5-VL is **not** used as an online controller and is **not** called inside 
 - Offline VLM semantic labeling interface
 - Physics verification and label-wise semantic fusion
 - Physical override for unreliable VLM labels
-- Lightweight surrogate semantic reward network
+- Lightweight MLP surrogate semantic reward network
 - Potential-based semantic reward shaping
 - Mixed situation curriculum for offensive, neutral, defensive, and random initial states
-- PPO integration with configurable reward shaping switch
-- Logging and diagnostic tools for reward, label, and curriculum analysis
+- PPO integration with a configurable reward-shaping switch
+- Logging and diagnostic tools for reward, label, surrogate, and curriculum analysis
 
 ## Tactical Semantic Labels
 
-PVVL-SR uses eight semantic labels:
+PVVL-SR uses eight tactical semantic labels:
 
 1. `ego_tail_advantage`
 2. `enemy_tail_threat`
@@ -51,7 +55,7 @@ PVVL-SR uses eight semantic labels:
 7. `defensive_escape`
 8. `neutral_stalemate`
 
-Different labels use different fusion policies:
+Different label types use different semantic fusion strategies:
 
 - Geometry labels use VLM + physics hybrid fusion.
 - Energy labels are physical-dominant.
@@ -61,6 +65,7 @@ Different labels use different fusion policies:
 ## Repository Structure
 
 ```text
+.
 ├── algorithms/                         # PPO/MAPPO baseline algorithms from LAG
 ├── envs/                               # LAG/JSBSim environments and scenarios
 ├── lag_extensions/
@@ -86,10 +91,11 @@ Different labels use different fusion policies:
 ├── config.py                           # LAG configuration
 ├── README.md
 └── LICENSE
+```
 
 ## What Is Not Included
 
-The following files are intentionally excluded from the public repository:
+The following files are intentionally excluded from this repository:
 
 - Qwen2.5-VL model weights
 - Trained PPO checkpoints
@@ -97,7 +103,7 @@ The following files are intentionally excluded from the public repository:
 - Generated air-combat semantic datasets
 - VLM cache files
 - Experiment logs and TensorBoard files
-- Paper manuscript files and PDFs
+- Manuscript files and PDFs
 - Large result folders under `scripts/results/`
 
 If you want to reproduce the full experiment pipeline, you need to generate datasets, VLM labels, surrogate models, and PPO training logs locally.
@@ -106,7 +112,7 @@ If you want to reproduce the full experiment pipeline, you need to generate data
 
 The project is based on LAG-master and JSBSim.
 
-A typical setup is:
+Create a Python environment:
 
 ```bash
 conda create -n pvvl_sr python=3.8
@@ -137,31 +143,31 @@ Depending on your CUDA environment, you may need to install a compatible PyTorch
 
 ## Basic Usage
 
-### 1. Original PPO Training
+### Original PPO Training
 
 Run original PPO without reward shaping:
 
 ```bash
-python scripts/train/train_jsbsim.py ^
-  --env-name SingleCombat ^
-  --algorithm-name ppo ^
+python scripts/train/train_jsbsim.py \
+  --env-name SingleCombat \
+  --algorithm-name ppo \
   --scenario-name 1v1/NoWeapon/Selfplay
 ```
 
-### 2. PPO with Physical Reward Shaping
+### PPO with Physical Reward Shaping
 
 ```bash
-python scripts/train/train_jsbsim.py ^
-  --env-name SingleCombat ^
-  --algorithm-name ppo ^
-  --scenario-name 1v1/NoWeapon/Selfplay ^
-  --use-reward-shaping ^
+python scripts/train/train_jsbsim.py \
+  --env-name SingleCombat \
+  --algorithm-name ppo \
+  --scenario-name 1v1/NoWeapon/Selfplay \
+  --use-reward-shaping \
   --reward-shaping-config lag_extensions/reward_shaping/configs/physical_1v1.yaml
 ```
 
-### 3. PPO with Surrogate Semantic Reward Shaping
+### PPO with Surrogate Semantic Reward Shaping
 
-This requires a trained surrogate model. By default, configs may point to:
+This requires a trained surrogate model. By default, several configs point to:
 
 ```text
 scripts/results/surrogate_models/stage9_surrogate_v2/
@@ -170,11 +176,11 @@ scripts/results/surrogate_models/stage9_surrogate_v2/
 If this directory does not exist, train or provide a surrogate model first.
 
 ```bash
-python scripts/train/train_jsbsim.py ^
-  --env-name SingleCombat ^
-  --algorithm-name ppo ^
-  --scenario-name 1v1/NoWeapon/Selfplay ^
-  --use-reward-shaping ^
+python scripts/train/train_jsbsim.py \
+  --env-name SingleCombat \
+  --algorithm-name ppo \
+  --scenario-name 1v1/NoWeapon/Selfplay \
+  --use-reward-shaping \
   --reward-shaping-config lag_extensions/reward_shaping/configs/surrogate_v2_then_fusion_mixed_curriculum_1v1.yaml
 ```
 
@@ -182,43 +188,43 @@ python scripts/train/train_jsbsim.py ^
 
 The VLM is used offline only.
 
-### 1. Generate Air-Combat Situation Dataset
+### Generate Air-Combat Situation Dataset
 
 ```bash
-python tools/generate_aircombat_semantic_dataset.py ^
-  --env-name SingleCombat ^
-  --scenario-name 1v1/NoWeapon/Selfplay ^
-  --num-samples 100 ^
+python tools/generate_aircombat_semantic_dataset.py \
+  --env-name SingleCombat \
+  --scenario-name 1v1/NoWeapon/Selfplay \
+  --num-samples 100 \
   --output-dir scripts/results/aircombat_semantic_dataset
 ```
 
-### 2. Label with Qwen2.5-VL
+### Label with Qwen2.5-VL
 
 ```bash
-python tools/label_with_qwen_vl.py ^
-  --dataset-dir scripts/results/aircombat_semantic_dataset ^
-  --config lag_extensions/reward_shaping/configs/qwen2_5_vl_hybrid_1v1.yaml ^
-  --cache scripts/results/vlm_cache/qwen2_5_vl_cache.jsonl ^
+python tools/label_with_qwen_vl.py \
+  --dataset-dir scripts/results/aircombat_semantic_dataset \
+  --config lag_extensions/reward_shaping/configs/qwen2_5_vl_hybrid_1v1.yaml \
+  --cache scripts/results/vlm_cache/qwen2_5_vl_cache.jsonl \
   --resume
 ```
 
 For testing without loading Qwen:
 
 ```bash
-python tools/label_with_qwen_vl.py ^
-  --dataset-dir scripts/results/aircombat_semantic_dataset ^
-  --config lag_extensions/reward_shaping/configs/qwen2_5_vl_hybrid_1v1.yaml ^
-  --mock-vlm ^
+python tools/label_with_qwen_vl.py \
+  --dataset-dir scripts/results/aircombat_semantic_dataset \
+  --config lag_extensions/reward_shaping/configs/qwen2_5_vl_hybrid_1v1.yaml \
+  --mock-vlm \
   --resume
 ```
 
-### 3. Evaluate VLM Label Quality
+### Evaluate VLM Label Quality
 
 ```bash
-python tools/evaluate_vlm_labels.py ^
-  --dataset-dir scripts/results/aircombat_semantic_dataset ^
-  --cache scripts/results/vlm_cache/qwen2_5_vl_cache.jsonl ^
-  --config lag_extensions/reward_shaping/configs/qwen2_5_vl_hybrid_1v1.yaml ^
+python tools/evaluate_vlm_labels.py \
+  --dataset-dir scripts/results/aircombat_semantic_dataset \
+  --cache scripts/results/vlm_cache/qwen2_5_vl_cache.jsonl \
+  --config lag_extensions/reward_shaping/configs/qwen2_5_vl_hybrid_1v1.yaml \
   --output-dir scripts/results/vlm_label_eval
 ```
 
@@ -229,34 +235,34 @@ The surrogate network is a lightweight MLP that maps compact air-combat state fe
 ### Export Surrogate Dataset
 
 ```bash
-python tools/export_semantic_surrogate_dataset.py ^
-  --dataset-dir scripts/results/aircombat_semantic_dataset ^
-  --cache scripts/results/vlm_cache/qwen2_5_vl_cache.jsonl ^
-  --config lag_extensions/reward_shaping/configs/qwen2_5_vl_hybrid_1v1.yaml ^
+python tools/export_semantic_surrogate_dataset.py \
+  --dataset-dir scripts/results/aircombat_semantic_dataset \
+  --cache scripts/results/vlm_cache/qwen2_5_vl_cache.jsonl \
+  --config lag_extensions/reward_shaping/configs/qwen2_5_vl_hybrid_1v1.yaml \
   --output scripts/results/semantic_surrogate_dataset/surrogate_dataset.jsonl
 ```
 
 ### Train Surrogate MLP
 
 ```bash
-python tools/train_semantic_surrogate.py ^
-  --dataset scripts/results/semantic_surrogate_dataset/surrogate_dataset.jsonl ^
-  --output-dir scripts/results/surrogate_models/surrogate_v1 ^
-  --target-type fused_scores ^
-  --epochs 400 ^
-  --batch-size 32 ^
-  --hidden-dim 128 ^
-  --num-layers 3 ^
-  --lr 1e-3 ^
+python tools/train_semantic_surrogate.py \
+  --dataset scripts/results/semantic_surrogate_dataset/surrogate_dataset.jsonl \
+  --output-dir scripts/results/surrogate_models/surrogate_v1 \
+  --target-type fused_scores \
+  --epochs 400 \
+  --batch-size 32 \
+  --hidden-dim 128 \
+  --num-layers 3 \
+  --lr 1e-3 \
   --seed 0
 ```
 
 ### Evaluate Surrogate
 
 ```bash
-python tools/evaluate_semantic_surrogate.py ^
-  --dataset scripts/results/semantic_surrogate_dataset/surrogate_dataset.jsonl ^
-  --model-dir scripts/results/surrogate_models/surrogate_v1 ^
+python tools/evaluate_semantic_surrogate.py \
+  --dataset scripts/results/semantic_surrogate_dataset/surrogate_dataset.jsonl \
+  --model-dir scripts/results/surrogate_models/surrogate_v1 \
   --output-dir scripts/results/surrogate_eval
 ```
 
@@ -302,6 +308,21 @@ The curriculum is optional and only enabled through configuration. It does not m
 - NoWeapon results should not be interpreted as full missile-combat validation.
 - DodgeMissile support is preliminary and intended for compatibility checking.
 
+## Citation
+
+A manuscript based on this framework is in preparation.
+
+```bibtex
+@misc{pvvl_sr,
+  title = {PVVL-SR: A Physics-Verified Vision-Language Semantic Reward Shaping Framework for Maneuvering UAV Air Combat Reinforcement Learning},
+  author = {Li, Zhendong and Li, Hui},
+  year = {2026},
+  note = {Research code}
+}
+```
+
+Please also cite the original LAG environment if you use this repository.
+
 ## Acknowledgement
 
 This project builds on LAG-master, a JSBSim-based air-combat reinforcement learning environment. PVVL-SR extends it with physics-verified semantic reward modeling, offline VLM labeling, surrogate reward inference, and curriculum-based PPO training.
@@ -309,4 +330,3 @@ This project builds on LAG-master, a JSBSim-based air-combat reinforcement learn
 ## License
 
 This repository follows the license terms of the included project files. Please check `LICENSE` before redistribution or commercial use.
-```
